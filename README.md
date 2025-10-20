@@ -29,21 +29,19 @@
 ### Покретање _Chat_ сервера
 
    ```bash
-  java -cp "chatServer.jar;kryonet-2.21-all.jar" rs.raf.pds.v4.z5.ChatServer 4555
+  java -cp "serverMessageSocket.jar;../../lib/*" rs.raf.pds.v5.z1.ServerMessageSocket 4555
   ```
-
+* serverMessageSocket.jar: **садржи компајлиране класе и ресурсе за покретање сервера**
 * chatServer.jar: **компајлирани сервер код.**
-* kryonet-2.21-all.jar: **библиотека за мрежну комуникацију.**
 * rs.raf.pds.v4.z5.ChatServer: **пуна путања до главне класе сервера.**
 * 4555: **број порта на коме сервер ослушкује долазне конекције.**
 
 ### Покретање _Chat_ клијента
 
    ```bash
-java -cp "chatClient.jar;kryonet-2.21-all.jar" rs.raf.pds.v4.z5.ChatClient localhost 4555 UserName
+java -cp "clientMessageSocket.jar;../../lib/*" rs.raf.pds.v5.z1.ClientMessageSocket localhost 4555 UserName
   ```
-* chatClient.jar: **компајлирани клијент код**.
-* kryonet-2.21-all.jar: **библиотека за мрежну комуникацију.**
+* clientMessageSocket.jar: **садржи компајлиране класе и ресурсе за покретање клијента**
 * rs.raf.pds.v4.z5.ChatClient: **пуна путања до главне класе клијента.**
 * localhost: **адреса сервера (ако су сервер и клијент на истој машини).**
 * 4555: **порт на коме сервер прихвата конекције**.
