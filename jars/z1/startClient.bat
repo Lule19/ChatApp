@@ -1,0 +1,1 @@
+java -cp "clientMessageSocket.jar;../../lib/*" rs.raf.pds.v5.z1.ClientMessageSocket localhost 4555 ZoranB

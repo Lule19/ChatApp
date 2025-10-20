@@ -1,0 +1,2 @@
+protoc --plugin=protoc-gen-grpc-java=D:\dev\protoc\protoc-gen-grpc-java-1.54.0-windows-x86_64.exe --java_out=src --grpc-java_out=src --proto_path=proto student_service.proto
+
