@@ -1,1 +1,0 @@
-java -cp "serverMessageSocket.jar;../../lib/*" rs.raf.pds.v5.z1.ServerMessageSocket 4555
