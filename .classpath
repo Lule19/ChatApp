@@ -15,5 +15,9 @@
 	<classpathentry kind="lib" path="lib/grpc-netty-1.54.0.jar"/>
 	<classpathentry kind="lib" path="lib/grpc-protobuf-1.54.0.jar"/>
 	<classpathentry kind="lib" path="lib/grpc-stub-1.54.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Korisnik/Desktop/CHAT/Luka/JavaRPC/JavaRPC/lib/kryo-5.4.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Korisnik/Desktop/CHAT/Luka/JavaRPC/JavaRPC/lib/minlog-1.3.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Korisnik/Desktop/CHAT/Luka/JavaRPC/JavaRPC/lib/objenesis-3.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Korisnik/Desktop/CHAT/Luka/JavaRPC/JavaRPC/lib/reflectasm-1.11.9.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

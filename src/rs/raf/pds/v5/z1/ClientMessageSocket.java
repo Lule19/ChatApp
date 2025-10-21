@@ -1,18 +1,13 @@
 package rs.raf.pds.v5.z1;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
-import java.io.PrintWriter;
 import java.net.Socket;
-
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Output;
 
 public class ClientMessageSocket implements Runnable{
 	
@@ -21,15 +16,20 @@ public class ClientMessageSocket implements Runnable{
 	Socket socket;
 	volatile boolean running = false;
 	final String userName;
+
+	private final Kryo kryo = new Kryo();
+	private Input kryoInput;
+	private Output kryoOutput;
 	
 	public ClientMessageSocket(Socket socket, String userName) {
 		this.socket = socket;
 		this.userName = userName;
+		KryoUtil.registerKryoClasses(kryo);
 	}
 	
 	public void start() {
 		if (thread == null) {
-			thread = new Thread(this);
+			thread = new Thread(this, "client-main");
 			thread.start();
 		}
 	}
@@ -44,97 +44,72 @@ public class ClientMessageSocket implements Runnable{
 	@Override
 	public void run() {
 		try (
-	         PrintWriter out =
-	         	new PrintWriter(socket.getOutputStream(), true);
-	         BufferedReader in =
-	                new BufferedReader(
-	                    new InputStreamReader(socket.getInputStream()));
-	         BufferedReader stdIn =
-	               new BufferedReader(
-	                    new InputStreamReader(System.in))	// Za čitanje sa standardnog ulaza - tastature!
-	        ) {
-				ObjectOutputStream objectStream = new ObjectOutputStream(socket.getOutputStream());
-							
-				ObjectMapper jsonMapper = new ObjectMapper(); 
-				jsonMapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
-			
-				Kryo kryo = new Kryo();
-				KryoUtil.registerKryoClasses(kryo);
-				Output kryoOutput = new Output(socket.getOutputStream());
-				
-				out.println(userName);	// Login 
-				System.out.println("Server:"+in.readLine());
-	            String serType = stdIn.readLine();
-	            out.println(serType);
-	            
+		     BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in))
+		) {
+				kryoInput = new Input(socket.getInputStream());
+				kryoOutput = new Output(socket.getOutputStream());
+
+				// Handshake: pošalji username kroz Auth paket
+				kryo.writeObject(kryoOutput, new Auth(userName));
+				kryoOutput.flush();
+
+				// Reader nit: prima poruke sa servera i ispisuje ih
+				Thread reader = new Thread(this::readLoop, "client-reader");
+				reader.setDaemon(true);
+				reader.start();
+
 				String userInput;
 				running = true;
 				int counter = 0;
-				
+
+	            System.out.println("Kryo chat (multi-klijent). Ukucaj poruku i Enter. Za kraj: BYE");
+
 	            while (running) {
 	            	userInput = stdIn.readLine();
-	            	if (userInput == null || "BYE".equalsIgnoreCase(userInput))// userInput - tekst koji je unet sa tastature!
-	            	{
+	            	if (userInput == null || "BYE".equalsIgnoreCase(userInput)) {
 	            		userInput = "Bye";
 	            		running = false;
 	            	}
-	            	else if ("J".equalsIgnoreCase(serType)) {
-	            		Message m = new Message(++counter, userName);
-	            		m.tipPoruke = "JSON String";
-	            		m.poruka = userInput;
-	            		String jsonString = jsonMapper.writeValueAsString(m);
-	            		out.println(jsonString);
-	            		out.flush();
-	            	}
-	            	else if ("B".equalsIgnoreCase(serType)) {
-	            		Message m = new Message(++counter, userName);
-	            		m.tipPoruke = "JSON Binary";
-	            		m.poruka = userInput;
-	            		byte[] jsonBytes = jsonMapper.writeValueAsBytes(m);
-	            		socket.getOutputStream().write(jsonBytes);
-	            		socket.getOutputStream().flush();
-	            	}
-	            	else if ("S".equalsIgnoreCase(serType)) {
-	            		Message m = new Message(++counter, userName);
-	            		m.tipPoruke = "Java Serializable";
-	            		m.poruka = userInput;
-	            		objectStream.writeObject(m);
-	            		objectStream.flush();
-	            	}
-	            	else if ("K".equalsIgnoreCase(serType)) {
-	            		Message m = new Message(++counter, userName);
-	            		m.tipPoruke = "Kryo";
-	            		m.poruka = userInput;
-	            		kryo.writeObject(kryoOutput, m);
-	            		kryoOutput.flush();
-	            			
-	            	}
-	            	else {
-	            		out.println(userInput);							// Slanje unetog teksta ka serveru
-	            		out.flush();
-	            	}
-	            	
+	            	// Sastavi Message i pošalji preko Kryo
+	            	Message m = new Message(++counter, userName);
+            		m.tipPoruke = "Kryo";
+            		m.poruka = userInput;
+            		synchronized (this) {
+						kryo.writeObject(kryoOutput, m);
+						kryoOutput.flush();
+					}
 	            }
 	            
 	    } catch (IOException e) {
 			e.printStackTrace();
-		}
-		finally {
+		} finally {
 			try {
 				running = false;
+				if (kryoOutput != null) kryoOutput.close();
+				if (kryoInput != null) kryoInput.close();
 				socket.close();
 			} catch (IOException e) {
-				
 				e.printStackTrace();
 			}
 		}
-		
+	}
+
+	private void readLoop() {
+		try {
+			while (true) {
+				Message m = kryo.readObject(kryoInput, Message.class);
+				// Ispiši svaku poruku dobijenu od servera (broadcast)
+				System.out.println("[" + m.messageId + "] " + m.userName + ": " + m.poruka);
+			}
+		} catch (Exception e) {
+			// konekcija zatvorena
+		}
 	}
 
 	public static void main(String[] args) {
 		if (args.length != 3) {
             System.err.println(
-                "Usage: java ClientMessageSocket <host name> <port number> <username>");
+                "Usage: java rs.raf.pds.v5.z1.ClientMessageSocket <host> <port> <username>");
             System.exit(1);
         }
  
@@ -154,9 +129,8 @@ public class ClientMessageSocket implements Runnable{
                     hostName);
                 
          } catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
-        System.exit(1);
+        System.exit(0);
 	}
 }

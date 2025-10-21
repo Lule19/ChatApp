@@ -17,5 +17,4 @@ public class Message implements Serializable{
 		this.messageId = messageId;
 		this.userName = userName;
 	}
-	
 }
