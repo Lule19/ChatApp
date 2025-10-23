@@ -11,5 +11,22 @@ public class KryoUtil {
 		kryo.register(WhoRequest.class);
 		kryo.register(ListUsers.class);
 		kryo.register(InfoMessage.class);
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		kryo.register(RoomMessage.class);
+        kryo.register(RoomMessage[].class);
+        kryo.register(CreateRoom.class);
+        kryo.register(ListRoomRequest.class);
+        kryo.register(ListRooms.class);
+        kryo.register(JoinRoomRequest.class);
+        kryo.register(InviteToRoom.class);
+        kryo.register(RoomHistory.class);
 	}
 }
